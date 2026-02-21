@@ -2,35 +2,39 @@
 
 Compare 🛒 and 🚚🚲 – Austrian grocery & online-shop price comparison.
 
+## Live Dashboard
+
+👉 **<https://stefan2904.github.io/ninjaCompare-experiment/>**
+
+The dashboard is a static site served via **GitHub Pages**. It loads price data directly from the [`data` branch](../../tree/data) and runs entirely in the browser – no server required.
+
 ## Architecture
 
-Price data is collected automatically by a **GitHub Actions workflow** that runs daily at 06:00 UTC. The collected data is committed to the [`data` branch](../../tree/data) of this repository, keeping the `main` branch clean.
+```
+main branch           data branch           GitHub Pages
+───────────           ───────────           ────────────
+source code  ──(CI)──▶ data/latest-         docs/ static
+docs/ static           canonical.json       site served
+                       (updated daily)      at /
+```
 
-```
-main branch          data branch
-───────────          ───────────
-source code   ──→    data/latest-canonical.json
-                           (updated daily)
-```
+Price data is collected automatically by a **GitHub Actions workflow** that runs daily at 06:00 UTC and commits to the `data` branch. The static dashboard is redeployed automatically after each data collection.
 
 ### Triggering a manual data collection
 
 Go to **Actions → Collect Data → Run workflow** on GitHub.
 
-## Services (local / Docker)
+## Local development (Docker Compose)
+
+The `data-collector` service can still be run locally for development and testing.
 
 | Service | Port | Description |
 |---|---|---|
 | `data-collector` | 3001 | Fetches product prices from Billa, Spar, Ninja, Velofood and exposes them via a JSON API |
-| `dashboard` | 3000 | Price-comparison web UI that reads data from the collector |
-
-## Quick Start (Docker Compose)
 
 ```sh
-docker compose up --build
+docker compose up --build data-collector
 ```
-
-Then open <http://localhost:3000> in your browser.
 
 ## Data Collector API
 
@@ -66,10 +70,9 @@ cd data-collector && npm install && npm run collect
 
 # Run the HTTP server (with cron scheduling)
 cd data-collector && npm install && npm start
-
-# Run the dashboard
-cd dashboard && npm install && node index.js
 ```
+
+The static dashboard in `docs/` can be opened directly in a browser (or served with any static file server). It fetches data from the `data` branch on GitHub, so a live internet connection is required.
 
 ## Store Implementation Status
 
