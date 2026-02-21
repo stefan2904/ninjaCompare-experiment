@@ -57,7 +57,7 @@ cd dashboard       && npm install && node index.js
 | Billa | ✅ Implemented (via `shop.billa.at` API) |
 | Spar | ✅ Implemented (via Spar Fact-Finder search API) |
 | Ninja | 🚧 Placeholder – API to be confirmed |
-| Velofood | 🚧 Placeholder – API to be confirmed |
+| Velofood | ✅ Implemented (HTML scraping of WooCommerce Supermarkt category – see [docs/velofood-api.md](docs/velofood-api.md)) |
 
 ## Inspiration
 
