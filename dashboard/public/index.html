@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ninjaCompare – Austrian Grocery Price Comparison</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>🛒 ninjaCompare 🚚🚲</h1>
+        <p class="subtitle">Compare prices across Austrian supermarkets and online shops</p>
+    </header>
+
+    <main>
+        <!-- Controls -->
+        <section class="controls">
+            <input
+                type="text"
+                id="search"
+                placeholder="Search products…"
+                aria-label="Search products"
+            />
+            <div class="store-filters" id="store-filters" role="group" aria-label="Filter by store">
+                <!-- Store checkboxes injected by JS -->
+            </div>
+            <select id="sort" aria-label="Sort by">
+                <option value="name">Sort by name</option>
+                <option value="price-asc">Price ↑</option>
+                <option value="price-desc">Price ↓</option>
+            </select>
+        </section>
+
+        <!-- Stats bar -->
+        <section class="stats" id="stats" aria-live="polite"></section>
+
+        <!-- Product table -->
+        <section class="table-wrapper" role="region" aria-label="Product list">
+            <table id="products">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Store</th>
+                        <th>Price (€)</th>
+                        <th>Per unit</th>
+                        <th>Organic</th>
+                    </tr>
+                </thead>
+                <tbody id="product-body">
+                    <tr><td colspan="5" class="loading">Loading data…</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>Data updated daily. Sources: Billa, Spar, Ninja, Velofood.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

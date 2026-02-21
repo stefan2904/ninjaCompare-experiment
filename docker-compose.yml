@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Data Collector
+  # Fetches product prices from Billa, Spar, Ninja, Velofood and exposes them
+  # via a JSON API on port 3001.
+  # ─────────────────────────────────────────────────────────────────────────
+  data-collector:
+    build:
+      context: ./data-collector
+    container_name: ninjacompare-collector
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      TZ: "Europe/Vienna"
+    volumes:
+      - collector-data:/app/data
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Dashboard
+  # Serves the price-comparison UI on port 3000.
+  # ─────────────────────────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ./dashboard
+    container_name: ninjacompare-dashboard
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      COLLECTOR_URL: "http://data-collector:3001"
+    ports:
+      - "3000:3000"
+    depends_on:
+      data-collector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  collector-data:

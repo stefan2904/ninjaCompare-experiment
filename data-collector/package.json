@@ -1,0 +1,17 @@
+{
+  "name": "ninjacompare-data-collector",
+  "version": "1.0.0",
+  "description": "Data collection service for Austrian supermarket/online shop price comparison",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.5",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "node-html-parser": "^6.1.13"
+  },
+  "license": "ISC"
+}
