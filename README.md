@@ -2,7 +2,22 @@
 
 Compare 🛒 and 🚚🚲 – Austrian grocery & online-shop price comparison.
 
-## Services
+## Architecture
+
+Price data is collected automatically by a **GitHub Actions workflow** that runs daily at 06:00 UTC. The collected data is committed to the [`data` branch](../../tree/data) of this repository, keeping the `main` branch clean.
+
+```
+main branch          data branch
+───────────          ───────────
+source code   ──→    data/latest-canonical.json
+                           (updated daily)
+```
+
+### Triggering a manual data collection
+
+Go to **Actions → Collect Data → Run workflow** on GitHub.
+
+## Services (local / Docker)
 
 | Service | Port | Description |
 |---|---|---|
@@ -46,8 +61,14 @@ Then open <http://localhost:3000> in your browser.
 ## Development
 
 ```sh
-cd data-collector && npm install && node index.js
-cd dashboard       && npm install && node index.js
+# Run the standalone data collector (one-shot, writes data/latest-canonical.json)
+cd data-collector && npm install && npm run collect
+
+# Run the HTTP server (with cron scheduling)
+cd data-collector && npm install && npm start
+
+# Run the dashboard
+cd dashboard && npm install && node index.js
 ```
 
 ## Store Implementation Status
