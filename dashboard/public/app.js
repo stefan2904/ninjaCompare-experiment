@@ -3,9 +3,11 @@
  */
 
 const STORES = ["billa", "spar", "ninja", "velofood"];
+const ITEMS_PER_PAGE = 100;
 
 let allItems = [];
 let activeStores = new Set(STORES);
+let currentPage = 1;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
 const searchInput = document.getElementById("search");
@@ -13,6 +15,7 @@ const sortSelect = document.getElementById("sort");
 const storeFiltersEl = document.getElementById("store-filters");
 const productBody = document.getElementById("product-body");
 const statsEl = document.getElementById("stats");
+const paginationEl = document.getElementById("pagination");
 
 // ─── Build store filter checkboxes ──────────────────────────────────────────
 function buildStoreFilters() {
@@ -28,6 +31,7 @@ function buildStoreFilters() {
         checkbox.addEventListener("change", () => {
             if (checkbox.checked) activeStores.add(store);
             else activeStores.delete(store);
+            currentPage = 1;
             renderTable();
         });
 
@@ -72,20 +76,53 @@ function formatUnit(item) {
     return qty;
 }
 
+function renderPagination(total) {
+    const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+    if (totalPages <= 1) {
+        paginationEl.innerHTML = "";
+        paginationEl.onclick = null;
+        return;
+    }
+    const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const end = Math.min(currentPage * ITEMS_PER_PAGE, total);
+    paginationEl.innerHTML = `
+        <button data-page="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Previous page">&#8249; Prev</button>
+        <span class="page-info">Page ${currentPage} of ${totalPages} (${start}–${end} of ${total.toLocaleString()})</span>
+        <button data-page="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Next page">Next &#8250;</button>
+    `;
+    paginationEl.onclick = (e) => {
+        const btn = e.target.closest("button");
+        if (!btn || btn.disabled) return;
+        if (btn.dataset.page === "prev" && currentPage > 1) { currentPage--; renderTable(); }
+        if (btn.dataset.page === "next" && currentPage < totalPages) { currentPage++; renderTable(); }
+    };
+}
+
 function renderTable() {
-    const items = getFilteredItems();
+    const allFiltered = getFilteredItems();
+    const total = allFiltered.length;
+
+    if (total === 0) {
+        currentPage = 1;
+        statsEl.textContent = "Showing 0 products";
+        productBody.innerHTML = `<tr><td colspan="5" class="no-results">No products found.</td></tr>`;
+        paginationEl.innerHTML = "";
+        paginationEl.onclick = null;
+        return;
+    }
+
+    const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const items = allFiltered.slice(start, start + ITEMS_PER_PAGE);
 
     // Stats
     const storeCounts = {};
-    for (const item of items) storeCounts[item.store] = (storeCounts[item.store] || 0) + 1;
+    for (const item of allFiltered) storeCounts[item.store] = (storeCounts[item.store] || 0) + 1;
     statsEl.textContent =
-        `Showing ${items.length.toLocaleString()} products – ` +
+        `Showing ${total.toLocaleString()} products – ` +
         STORES.filter((s) => storeCounts[s]).map((s) => `${s}: ${storeCounts[s]}`).join(", ");
-
-    if (items.length === 0) {
-        productBody.innerHTML = `<tr><td colspan="5" class="no-results">No products found.</td></tr>`;
-        return;
-    }
 
     productBody.innerHTML = items
         .map((item) => {
@@ -102,6 +139,8 @@ function renderTable() {
             </tr>`;
         })
         .join("");
+
+    renderPagination(total);
 }
 
 function escapeHtml(str) {
@@ -131,6 +170,6 @@ async function loadData() {
 
 // ─── Init ───────────────────────────────────────────────────────────────────
 buildStoreFilters();
-searchInput.addEventListener("input", renderTable);
-sortSelect.addEventListener("change", renderTable);
+searchInput.addEventListener("input", () => { currentPage = 1; renderTable(); });
+sortSelect.addEventListener("change", () => { currentPage = 1; renderTable(); });
 loadData();
