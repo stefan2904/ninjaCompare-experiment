@@ -157,6 +157,24 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
+// ─── Store filter visibility ────────────────────────────────────────────────
+function updateStoreFilterVisibility() {
+    const storeCounts = {};
+    for (const item of allItems) storeCounts[item.store] = (storeCounts[item.store] || 0) + 1;
+
+    STORES.forEach((store) => {
+        const label = document.querySelector(`label[for="filter-${store}"]`);
+        if (label) {
+            if (storeCounts[store]) {
+                label.style.display = "";
+            } else {
+                label.style.display = "none";
+                activeStores.delete(store);
+            }
+        }
+    });
+}
+
 // ─── Data loading ───────────────────────────────────────────────────────────
 async function loadData() {
     productBody.innerHTML = `<tr><td colspan="5" class="loading">Loading data…</td></tr>`;
@@ -166,6 +184,7 @@ async function loadData() {
         const response = await fetch(DATA_URL);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         allItems = await response.json();
+        updateStoreFilterVisibility();
         renderTable();
     } catch (err) {
         productBody.innerHTML = `<tr><td colspan="5" class="error">Failed to load data: ${escapeHtml(err.message)}</td></tr>`;
