@@ -8,7 +8,14 @@
 const DATA_URL =
     "https://raw.githubusercontent.com/stefan2904/ninjaCompare-experiment/data/data/latest-canonical.json";
 
-const STORES = ["billa", "spar", "ninja", "velofood"];
+const STORES = ["billa", "spar", "ninja", "velofood", "alfies-graz"];
+const STORE_LABELS = {
+    billa: "Billa",
+    spar: "Spar",
+    ninja: "Ninja",
+    velofood: "Velofood",
+    "alfies-graz": "Alfies Graz",
+};
 const ITEMS_PER_PAGE = 100;
 const CACHE_KEY = "ninjaCompare_data";
 const CACHE_TS_KEY = "ninjaCompare_ts";
@@ -39,6 +46,10 @@ const comparisonModal = document.getElementById("comparison-modal");
 const comparisonBody = document.getElementById("comparison-body");
 
 // ─── Build store filter checkboxes ──────────────────────────────────────────
+function getStoreLabel(store) {
+    return STORE_LABELS[store] || store;
+}
+
 function buildStoreFilters() {
     STORES.forEach((store) => {
         const label = document.createElement("label");
@@ -57,7 +68,7 @@ function buildStoreFilters() {
         });
 
         label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(` ${store.charAt(0).toUpperCase() + store.slice(1)}`));
+        label.appendChild(document.createTextNode(` ${getStoreLabel(store)}`));
         storeFiltersEl.appendChild(label);
     });
 }
@@ -144,7 +155,7 @@ function renderTable() {
     const cacheInfo = cacheTimestamp ? ` · loaded ${formatCacheAge()}` : "";
     statsEl.textContent =
         `Showing ${total.toLocaleString()} products – ` +
-        STORES.filter((s) => storeCounts[s]).map((s) => `${s}: ${storeCounts[s]}`).join(", ") +
+        STORES.filter((s) => storeCounts[s]).map((s) => `${getStoreLabel(s)}: ${storeCounts[s]}`).join(", ") +
         cacheInfo;
 
     productBody.innerHTML = items
@@ -160,7 +171,7 @@ function renderTable() {
 
             return `<tr class="${inBasket ? 'row-in-basket' : ''}">
                 <td class="product-name">${nameCell}</td>
-                <td><span class="store-badge ${escapeHtml(item.store)}">${escapeHtml(item.store)}</span></td>
+                <td><span class="store-badge ${escapeHtml(item.store)}">${escapeHtml(getStoreLabel(item.store))}</span></td>
                 <td>€${item.price.toFixed(2)}</td>
                 <td>${formatUnit(item)}</td>
                 <td>${item.bio ? '<span class="bio-badge">Bio</span>' : ""}</td>
@@ -437,10 +448,11 @@ function canNormalize(item) {
 }
 
 const STORE_COLORS = {
-    billa:    { line: '#e63946', bg: 'rgba(230, 57, 70, 0.15)' },
-    spar:     { line: '#2a9d8f', bg: 'rgba(42, 157, 143, 0.15)' },
-    ninja:    { line: '#f4a261', bg: 'rgba(244, 162, 97, 0.15)' },
-    velofood: { line: '#457b9d', bg: 'rgba(69, 123, 157, 0.15)' },
+    billa:        { line: '#e63946', bg: 'rgba(230, 57, 70, 0.15)' },
+    spar:         { line: '#2a9d8f', bg: 'rgba(42, 157, 143, 0.15)' },
+    ninja:        { line: '#f4a261', bg: 'rgba(244, 162, 97, 0.15)' },
+    velofood:     { line: '#457b9d', bg: 'rgba(69, 123, 157, 0.15)' },
+    "alfies-graz": { line: '#7c3aed', bg: 'rgba(124, 58, 237, 0.15)' },
 };
 
 function openComparison() {
@@ -502,7 +514,7 @@ function renderComparison() {
     if (cheapestStore) {
         const savings = (mostExpensiveTotal - storeTotals[cheapestStore]);
         if (savings > 0.004) {
-            html += `<div class="comparison-summary-savings">💰 Best deal at <strong>${ucfirst(cheapestStore)}</strong> — save <strong>€${savings.toFixed(2)}</strong>${normalizeByWeight ? ' (normalized)' : ''}</div>`;
+            html += `<div class="comparison-summary-savings">💰 Best deal at <strong>${getStoreLabel(cheapestStore)}</strong> — save <strong>€${savings.toFixed(2)}</strong>${normalizeByWeight ? ' (normalized)' : ''}</div>`;
         }
     }
     html += '</div>';
@@ -521,7 +533,7 @@ function renderComparison() {
         <div class="comparison-store ${isCheapest ? 'cheapest' : ''}">
             <div class="comparison-store-header">
                 <div class="comparison-store-header-left">
-                    <span class="store-badge ${escapeHtml(store)}">${escapeHtml(ucfirst(store))}</span>
+                    <span class="store-badge ${escapeHtml(store)}">${escapeHtml(getStoreLabel(store))}</span>
                     ${isCheapest ? '<span class="cheapest-badge">★ Cheapest</span>' : ''}
                 </div>
                 <span class="comparison-store-total">€${total.toFixed(2)}${normalizeByWeight ? ' <span class="normalized-label">normalized</span>' : ''}</span>
@@ -547,7 +559,7 @@ function renderComparison() {
             </div>
             ${isCheapest && sortedStores.length > 1 && (mostExpensiveTotal - total) > 0.004 ? `
                 <div class="comparison-savings-note">
-                    Save €${(mostExpensiveTotal - total).toFixed(2)} vs ${ucfirst(sortedStores[sortedStores.length - 1][0])}${normalizeByWeight ? ' (normalized)' : ''}
+                    Save €${(mostExpensiveTotal - total).toFixed(2)} vs ${getStoreLabel(sortedStores[sortedStores.length - 1][0])}${normalizeByWeight ? ' (normalized)' : ''}
                 </div>
             ` : ''}
         </div>`;
@@ -579,10 +591,6 @@ function renderComparison() {
     // Render charts
     renderMainChart(storeGroups);
     renderProductCharts(storeGroups);
-}
-
-function ucfirst(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function renderMainChart(storeGroups) {
@@ -629,7 +637,7 @@ function renderMainChart(storeGroups) {
 
         const colors = STORE_COLORS[store] || { line: '#666', bg: 'rgba(102,102,102,0.15)' };
         datasets.push({
-            label: ucfirst(store),
+            label: getStoreLabel(store),
             data: totals,
             borderColor: colors.line,
             backgroundColor: colors.bg,
