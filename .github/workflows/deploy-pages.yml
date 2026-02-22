@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ["docs/**"]
+    paths: ["dashboard/**"]
   workflow_run:
     workflows: ["Collect Data"]
     types: [completed]
@@ -37,7 +37,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "docs"
+          path: "dashboard"
 
       - name: Deploy to GitHub Pages
         id: deployment
