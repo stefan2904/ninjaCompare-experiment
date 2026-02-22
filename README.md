@@ -30,7 +30,7 @@ The `data-collector` service can still be run locally for development and testin
 
 | Service | Port | Description |
 |---|---|---|
-| `data-collector` | 3001 | Fetches product prices from Billa, Spar, Hofer, Ninja, Velofood and exposes them via a JSON API |
+| `data-collector` | 3001 | Fetches product prices from Billa, Spar, Hofer, Ninja, Velofood, Alfies Graz and exposes them via a JSON API |
 
 ```sh
 docker compose up --build data-collector
@@ -82,7 +82,7 @@ The static dashboard in `dashboard/` can be opened directly in a browser (or ser
 | Spar | ✅ Implemented (via Spar Fact-Finder search API) |
 | Hofer | ✅ Implemented (via Roksh / Hofer shop API) |
 | Ninja | 🚧 Placeholder – API to be confirmed |
-| Velofood | ✅ Implemented (HTML scraping of WooCommerce Supermarkt category – see [dashboard/velofood-api.md](dashboard/velofood-api.md)) |
+| Velofood | ✅ Implemented (via custom public market API – see [dashboard/velofood-api.md](dashboard/velofood-api.md)) |
 | Alfies Graz | ✅ Implemented (via public Algolia indices) |
 
 ## Inspiration

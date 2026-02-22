@@ -2,7 +2,7 @@
  * Data Collector Service – ninjaCompare
  *
  * Fetches product prices from Austrian supermarkets (Billa, Spar, Hofer) and
- * online shops (Ninja, Velofood), merges them into a canonical JSON format,
+ * online shops (Ninja, Velofood, Alfies Graz), merges them into a canonical JSON format,
  * and exposes the result via a simple HTTP API.
  *
  * Endpoints:
