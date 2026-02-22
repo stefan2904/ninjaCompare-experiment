@@ -235,3 +235,486 @@ footer {
     border-top: 1px solid var(--color-border);
 }
 footer a { color: var(--color-muted); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Basket & Comparison Feature
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Utility */
+.hidden { display: none !important; }
+body.modal-open { overflow: hidden; }
+
+/* Basket column in product table ------------------------------------------- */
+.basket-col-header { width: 3rem; }
+
+.basket-cell { text-align: center; width: 3rem; }
+
+.basket-btn {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-muted);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+}
+
+.basket-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: #eef2ff;
+    transform: scale(1.1);
+}
+
+.basket-btn.in-basket {
+    border-color: #16a34a;
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.basket-btn.in-basket:hover {
+    border-color: #dc2626;
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+tr.row-in-basket {
+    background: #f0fdf4 !important;
+}
+tr.row-in-basket:hover {
+    background: #dcfce7 !important;
+}
+
+/* Basket FAB (floating action button) -------------------------------------- */
+.basket-fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 900;
+    animation: fab-enter 0.3s ease;
+}
+
+@keyframes fab-enter {
+    from { opacity: 0; transform: translateY(20px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.basket-fab button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.basket-fab button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+}
+
+.basket-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* Comparison modal --------------------------------------------------------- */
+.comparison-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+    overflow-y: auto;
+    animation: modal-fade-in 0.2s ease;
+}
+
+@keyframes modal-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.comparison-content {
+    background: var(--color-bg);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: modal-slide-in 0.25s ease;
+}
+
+@keyframes modal-slide-in {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.comparison-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: 12px 12px 0 0;
+}
+
+.comparison-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.comparison-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.comparison-action-btn {
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.comparison-action-btn:hover { background: #f1f3f5; }
+.comparison-action-btn.danger { color: #dc2626; }
+.comparison-action-btn.danger:hover { background: #fef2f2; }
+
+.comparison-close-btn {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.comparison-close-btn:hover {
+    background: #f1f3f5;
+    color: var(--color-text);
+}
+
+.comparison-body {
+    padding: 1.5rem;
+}
+
+/* Comparison: empty state */
+.comparison-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--color-muted);
+}
+.comparison-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+.comparison-empty-hint {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Comparison: summary bar */
+.comparison-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding: 0.85rem 1rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+}
+
+.comparison-summary-count {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    font-weight: 500;
+}
+
+.comparison-summary-savings {
+    font-size: 0.9rem;
+    color: #16a34a;
+    font-weight: 500;
+}
+
+/* Comparison: store baskets grid */
+.comparison-stores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.comparison-store {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 2px solid var(--color-border);
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.comparison-store.cheapest {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.1), 0 2px 8px rgba(22, 163, 74, 0.1);
+}
+
+.comparison-store-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    background: #fafafa;
+}
+
+.comparison-store-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cheapest-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #16a34a;
+    background: #dcfce7;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+}
+
+.comparison-store-total {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.comparison-products {
+    padding: 0.5rem 0;
+}
+
+.comparison-product {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    transition: background 0.1s;
+}
+.comparison-product:hover {
+    background: #f8f9fa;
+}
+
+.comparison-product-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.comparison-product-name {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.comparison-product-detail {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    margin-top: 0.1rem;
+}
+
+.comparison-product-price {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.comparison-remove-btn {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+}
+.comparison-remove-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.comparison-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-top: 2px solid var(--color-border);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.comparison-total-price {
+    font-size: 1.05rem;
+}
+
+.comparison-savings-note {
+    padding: 0.5rem 1rem;
+    background: #f0fdf4;
+    color: #16a34a;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-align: center;
+    border-top: 1px solid #dcfce7;
+}
+
+/* Comparison: price history */
+.comparison-history {
+    margin-top: 0.5rem;
+}
+
+.comparison-history h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.main-chart-container {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    height: 320px;
+    margin-bottom: 1.5rem;
+}
+
+.no-chart-data {
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    padding: 2rem 1rem;
+}
+
+.product-charts-container h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-muted);
+}
+
+.product-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.product-chart-card {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+.product-chart-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-border);
+    background: #fafafa;
+}
+.product-chart-title span:first-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.product-chart-canvas-wrap {
+    padding: 0.5rem;
+    height: 140px;
+}
+
+/* Toast notification ------------------------------------------------------- */
+.toast {
+    position: fixed;
+    bottom: 5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    padding: 0.65rem 1.25rem;
+    background: #1e293b;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Responsive -------------------------------------------------------------- */
+@media (max-width: 600px) {
+    .comparison-content { border-radius: 8px; }
+    .comparison-modal { padding: 1rem 0.5rem; }
+    .comparison-stores { grid-template-columns: 1fr; }
+    .comparison-header { padding: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .comparison-header h2 { font-size: 1.1rem; }
+    .comparison-body { padding: 1rem; }
+    .basket-fab { bottom: 1rem; right: 1rem; }
+    .product-charts-grid { grid-template-columns: 1fr; }
+    .main-chart-container { height: 250px; }
+}

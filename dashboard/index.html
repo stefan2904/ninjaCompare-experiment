@@ -45,10 +45,11 @@
                         <th>Price (€)</th>
                         <th>Per unit</th>
                         <th>Organic</th>
+                        <th class="basket-col-header"></th>
                     </tr>
                 </thead>
                 <tbody id="product-body">
-                    <tr><td colspan="5" class="loading">Loading data…</td></tr>
+                    <tr><td colspan="6" class="loading">Loading data…</td></tr>
                 </tbody>
             </table>
         </section>
@@ -57,10 +58,33 @@
         <nav id="pagination" class="pagination" aria-label="Pagination"></nav>
     </main>
 
+    <!-- Basket FAB -->
+    <div id="basket-fab" class="basket-fab hidden">
+        <button id="compare-btn" title="Compare basket prices">
+            🛒 Compare <span id="basket-count" class="basket-count">0</span>
+        </button>
+    </div>
+
+    <!-- Comparison Modal -->
+    <div id="comparison-modal" class="comparison-modal hidden">
+        <div class="comparison-content">
+            <div class="comparison-header">
+                <h2>🛒 Basket Comparison</h2>
+                <div class="comparison-actions">
+                    <button id="share-basket-btn" class="comparison-action-btn" title="Copy share link">🔗 Share</button>
+                    <button id="clear-basket-btn" class="comparison-action-btn danger" title="Clear basket">🗑️ Clear</button>
+                    <button id="close-comparison-btn" class="comparison-close-btn" title="Close">&times;</button>
+                </div>
+            </div>
+            <div id="comparison-body" class="comparison-body"></div>
+        </div>
+    </div>
+
     <footer>
         <p>Data updated daily. Sources: Billa, Spar, Ninja, Velofood. &nbsp;|&nbsp; <a href="https://github.com/stefan2904/ninjaCompare-experiment" target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
