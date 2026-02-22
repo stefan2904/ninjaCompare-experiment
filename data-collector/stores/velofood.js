@@ -1,39 +1,59 @@
 /**
- * Velofood online shop scraper.
+ * Velofood / Ninjas Market scraper.
  *
- * velofood.at is an Austrian online supermarket that delivers groceries by
- * bicycle.  The shop runs on WordPress + WooCommerce.
+ * velofood.at is an Austrian online supermarket based in Graz that delivers
+ * groceries by bicycle.  The shop runs on WordPress + WooCommerce with a
+ * custom Alpine.js frontend at https://velofood.at/market.
  *
- * The WooCommerce REST API (/wp-json/wc/v3/products) requires authentication,
- * so this module scrapes the public product-listing HTML pages of the
- * "Supermarkt" category instead.
+ * Products are fetched via a public JSON API at:
+ *   GET https://velofood.at/wp-json/velofood/v1/market_get_products
+ *       ?cat_id=<categoryId>&level=0&sort=default
  *
- * See docs/velofood-api.md for full API exploration notes.
+ * See dashboard/velofood-api.md for full API exploration notes.
  */
 
 const axios = require("axios");
-const HTMLParser = require("node-html-parser");
 const { convertUnit } = require("./utils");
 
 const STORE = "velofood";
-const URL_BASE = "https://www.velofood.at";
+const URL_BASE = "https://velofood.at";
 
-// WooCommerce category page for the Supermarkt section.
-const SUPERMARKT_URL = `${URL_BASE}/produktkategorie/supermarkt/`;
+// Custom REST API endpoint for market products.
+const API_URL = `${URL_BASE}/wp-json/velofood/v1/market_get_products`;
+
+// Top-level category IDs from the /market page.
+// Using level=0 with each fetches all subcategories in one request.
+const TOP_CATEGORY_IDS = [
+    3882, // Aktionen
+    3884, // Obst & Gemüse
+    3890, // Bäckerei & Konditorei
+    3895, // Kühlschrank
+    3902, // Vorratsschrank
+    3914, // Alkoholfreie Getränke
+    3922, // Alkohol
+    3932, // Tiefkühlung
+    3941, // Süße Snacks
+    3950, // Salzige Snacks
+    3956, // Drogerie & Hygiene
+    3962, // Baby
+    3966, // Küche & Haushalt
+    3970, // Hund & Katze
+    3974, // Papes, Snus & mehr
+];
 
 // Store-specific unit aliases (none needed beyond the global set).
 const units = {};
 
 /**
- * Parse quantity and unit from a product name.
- * Handles patterns like "500g", "1 kg", "500 ml", "1 l", etc.
+ * Parse quantity and unit from the `measure` field.
+ * The API returns values like "1stk", "300g", "1l", "250ml", "1kg".
  *
- * @param {string} name - product name
+ * @param {string} measure - combined quantity+unit string
  * @returns {[number, string]} [quantity, unit]
  */
-function parseQuantityUnit(name) {
-    if (!name) return [1, "stk"];
-    const match = name.match(/(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|dl|l)\b/i);
+function parseMeasure(measure) {
+    if (!measure) return [1, "stk"];
+    const match = measure.match(/^(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|dl|l|stk)$/i);
     if (match) {
         const qty = parseFloat(match[1].replace(",", "."));
         return [isNaN(qty) ? 1 : qty, match[2].toLowerCase()];
@@ -42,30 +62,45 @@ function parseQuantityUnit(name) {
 }
 
 /**
- * Convert a raw Velofood item (scraped from the product listing HTML) to the
- * canonical format.
+ * Convert a raw Velofood API item to the canonical format.
  *
- * @param {object} item  - raw item with { id, name, price, url }
+ * @param {object} item  - raw item from the API
  * @param {string} today - date string "YYYY-MM-DD"
  * @returns {object|null}
  */
 function getCanonical(item, today) {
-    if (!item || !item.price) return null;
+    // Use the float price_sort field; fall back to parsing the price string.
+    let price = item.price_sort;
+    if (typeof price !== "number" || isNaN(price) || price <= 0) {
+        if (!item.price) return null;
+        price = parseFloat(
+            String(item.price).replace(/[€\s\u00a0]/g, "").replace(/\./g, "").replace(",", ".")
+        );
+        if (isNaN(price) || price <= 0) return null;
+    }
 
-    const [quantity, unit] = parseQuantityUnit(item.name);
+    const [quantity, unit] = parseMeasure(item.measure);
+    const bio =
+        (Array.isArray(item.biolabel) && item.biolabel.length > 0) ||
+        (item.name && item.name.toLowerCase().includes("bio"));
+
+    const description =
+        item.productInfo && item.productInfo.description
+            ? item.productInfo.description.replace(/<[^>]+>/g, " ").trim()
+            : "";
 
     return convertUnit(
         {
             id: String(item.id),
             store: STORE,
             name: item.name || "",
-            description: "",
-            price: item.price,
-            priceHistory: [{ date: today, price: item.price }],
+            description,
+            price,
+            priceHistory: [{ date: today, price }],
             unit,
             quantity,
-            bio: item.name ? item.name.toLowerCase().includes("bio") : false,
-            url: item.url || URL_BASE,
+            bio,
+            url: `${URL_BASE}/market`,
         },
         units,
         STORE,
@@ -74,82 +109,45 @@ function getCanonical(item, today) {
 }
 
 /**
- * Fetch and parse a single product-listing page.
- *
- * @param {string} url
- * @returns {Promise<{ items: object[], hasNext: boolean }>}
- */
-async function fetchPage(url) {
-    const { data } = await axios.get(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; ninjaCompare/1.0)" },
-        timeout: 15000,
-    });
-
-    const root = HTMLParser.parse(data);
-    const items = [];
-
-    for (const product of root.querySelectorAll("li.product")) {
-        // Numeric product ID from the add-to-cart button attribute.
-        const cartBtn = product.querySelector("a.add_to_cart_button");
-        let id = cartBtn ? cartBtn.getAttribute("data-product_id") : null;
-
-        // Fallback: extract slug from the product URL.
-        const linkEl = product.querySelector("a.woocommerce-LoopProduct-link");
-        const productUrl = linkEl ? linkEl.getAttribute("href") : URL_BASE;
-        if (!id) {
-            id = productUrl.replace(/\/$/, "").split("/").pop();
-        }
-
-        const titleEl = product.querySelector(".woocommerce-loop-product__title");
-        const name = titleEl ? titleEl.text.trim() : "";
-
-        // Price text is in European format, e.g. "€1,29" or "1.234,56 €".
-        // Strip € and whitespace, remove thousands-separator periods, then
-        // convert the decimal comma to a period.
-        const priceEl = product.querySelector(".price .woocommerce-Price-amount");
-        if (!priceEl) continue;
-        const priceText = priceEl.text
-            .replace(/[€\s\u00a0]/g, "")
-            .replace(/\./g, "")
-            .replace(",", ".");
-        const price = parseFloat(priceText);
-        if (isNaN(price) || price <= 0) continue;
-
-        items.push({ id, name, price, url: productUrl });
-    }
-
-    const hasNext = !!root.querySelector(".woocommerce-pagination a.next");
-    return { items, hasNext };
-}
-
-/**
- * Fetch all raw product items from the Velofood Supermarkt category.
- * Paginates through all WooCommerce listing pages.
+ * Fetch all raw product items from the Velofood Ninjas Market API.
+ * Iterates over all top-level categories with level=0.
  *
  * @returns {Promise<object[]>}
  */
 async function fetchData() {
     const allItems = [];
-    let page = 1;
+    const seen = new Set();
 
-    while (true) {
-        const url =
-            page === 1
-                ? SUPERMARKT_URL
-                : `${SUPERMARKT_URL}page/${page}/`;
-
+    for (const catId of TOP_CATEGORY_IDS) {
         try {
-            const { items, hasNext } = await fetchPage(url);
+            const { data } = await axios.get(API_URL, {
+                params: {
+                    cat_id: catId,
+                    level: 0,
+                    sort: "default",
+                },
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (compatible; ninjaCompare/1.0)",
+                },
+                timeout: 30000,
+            });
 
-            if (items.length === 0) break;
-            allItems.push(...items);
+            if (!data || !Array.isArray(data.products)) continue;
 
-            if (!hasNext) break;
-            page++;
+            for (const subCat of data.products) {
+                if (!Array.isArray(subCat.items)) continue;
+                for (const item of subCat.items) {
+                    if (!item.id || seen.has(item.id)) continue;
+                    // Skip out-of-stock items.
+                    if (item.in_stock === false) continue;
+                    seen.add(item.id);
+                    allItems.push(item);
+                }
+            }
         } catch (err) {
-            if (err.response && err.response.status === 404) break;
-            console.warn(`[${STORE}] Error fetching page ${page}: ${err.message}`);
-            break;
+            console.warn(
+                `[${STORE}] Error fetching category ${catId}: ${err.message}`
+            );
         }
     }
 

@@ -2,11 +2,13 @@
 
 ## Overview
 
-**velofood** (https://www.velofood.at) is an Austrian online supermarket based in Graz that
-delivers groceries by bicycle.  The online shop is built on **WordPress + WooCommerce**.
+**velofood** (https://velofood.at) is an Austrian online supermarket based in Graz that
+delivers groceries by bicycle.  The online shop is built on **WordPress + WooCommerce** with
+a custom theme ("velofood-theme") and **Alpine.js** for the frontend.
 
-The most relevant section for price comparison is the **Supermarkt** category, which contains
-everyday grocery products.
+The shop has been rebranded to **Ninjas Market** and the primary product listing has moved
+from the old WooCommerce `/produktkategorie/supermarkt/` category pages to a custom
+single-page application at `/market`.
 
 ---
 
@@ -14,146 +16,215 @@ everyday grocery products.
 
 | Property | Value |
 |---|---|
-| Platform | WordPress + WooCommerce |
-| Base URL | `https://www.velofood.at` |
-| Supermarkt category | `https://www.velofood.at/produktkategorie/supermarkt/` |
-| Pagination | WooCommerce default: `/page/2/`, `/page/3/`, … |
+| Platform | WordPress + WooCommerce + Alpine.js |
+| Base URL | `https://velofood.at` |
+| Market page | `https://velofood.at/market` |
+| Old Supermarkt category *(deprecated)* | `https://velofood.at/produktkategorie/supermarkt/` |
 
 ---
 
-## WooCommerce REST API
+## Custom REST API (Primary – Recommended)
 
-WooCommerce exposes a standard REST API at `/wp-json/wc/v3/`.
+Products are loaded dynamically via a custom REST API.  Two equivalent endpoints exist:
 
-### Key Endpoints
-
-| Endpoint | Description |
+| Endpoint | URL |
 |---|---|
-| `GET /wp-json/wc/v3/products` | List all products |
-| `GET /wp-json/wc/v3/products?category=<id>` | List products in a category |
-| `GET /wp-json/wc/v3/products/categories` | List all product categories |
-| `GET /wp-json/wc/v3/products/<id>` | Single product detail |
+| **WP REST** | `GET https://velofood.at/wp-json/velofood/v1/market_get_products` |
+| **Custom PHP** | `GET https://velofood.at/custom_api/vfapi.php?action=market_get_products` |
 
-### Authentication
+Both return identical JSON.  **No authentication required.**
 
-The WooCommerce REST API requires **HTTP Basic Auth** using a Consumer Key and Consumer Secret
-generated in _WooCommerce → Settings → Advanced → REST API_.  Public (unauthenticated) access
-returns `401 Unauthorized`.
+### Query Parameters
 
-Since no public API credentials are available for velofood.at, the implementation uses
-**HTML scraping** of the product listing pages instead.
+| Parameter | Type | Description |
+|---|---|---|
+| `cat_id` | integer | WooCommerce category/subcategory ID (see category list below) |
+| `level` | `0` or `1` | `0` = fetch all subcategories of a parent category; `1` = fetch a single subcategory |
+| `sort` | string | Sort order: `default`, `price_asc`, `price_desc`, `name_asc`, `name_desc` |
 
----
-
-## HTML Scraping – Product Listing Pages
-
-### Product Listing URL Pattern
+### Example Requests
 
 ```
-Page 1: https://www.velofood.at/produktkategorie/supermarkt/
-Page 2: https://www.velofood.at/produktkategorie/supermarkt/page/2/
-Page N: https://www.velofood.at/produktkategorie/supermarkt/page/N/
+# All subcategories of "Obst & Gemüse" (parent cat_id=3884):
+GET https://velofood.at/wp-json/velofood/v1/market_get_products?cat_id=3884&level=0&sort=default
+
+# Single subcategory "Frisches Obst" (cat_id=3885):
+GET https://velofood.at/wp-json/velofood/v1/market_get_products?cat_id=3885&level=1&sort=default
 ```
 
-### HTML Structure (WooCommerce standard)
+### Response Schema
 
-```html
-<ul class="products">
-  <li class="product post-12345 type-product ...">
-
-    <!-- Product link wraps image + title -->
-    <a href="https://www.velofood.at/produkt/bio-vollmilch-1l/"
-       class="woocommerce-LoopProduct-link woocommerce-loop-product__link">
-      <img class="wp-post-image" src="..." alt="Bio Vollmilch 1l" />
-      <h2 class="woocommerce-loop-product__title">Bio Vollmilch 1l</h2>
-    </a>
-
-    <!-- Price block -->
-    <span class="price">
-      <span class="woocommerce-Price-amount amount">
-        <bdi>
-          <span class="woocommerce-Price-currencySymbol">€</span>1,29
-        </bdi>
-      </span>
-    </span>
-
-    <!-- Add-to-cart button carries the numeric product ID -->
-    <a href="/?add-to-cart=12345"
-       data-product_id="12345"
-       class="button product_type_simple add_to_cart_button ajax_add_to_cart">
-      In den Warenkorb
-    </a>
-
-  </li>
-  …
-</ul>
-
-<!-- Pagination -->
-<nav class="woocommerce-pagination">
-  <ul>
-    <li><span class="page-numbers current">1</span></li>
-    <li><a class="page-numbers" href=".../page/2/">2</a></li>
-    <li><a class="next page-numbers" href=".../page/2/">→</a></li>
-  </ul>
-</nav>
+```json
+{
+  "products": [
+    {
+      "subCategory": {
+        "subCategoryName": "Frisches Obst",
+        "subCategorySlug": "market-ninjas-frisches-obst",
+        "subCategoryId": 3885
+      },
+      "product_count": 27,
+      "items": [
+        {
+          "name": "Ananas Gold",
+          "brand": null,
+          "id": 1924549,
+          "price": "3,69",
+          "old_price": "",
+          "discount_percente": "",
+          "toplabel": [],
+          "biolabel": [],
+          "measure": "1stk",
+          "price_per_measure": "3.29/1stk",
+          "austrian_product": false,
+          "in_stock": true,
+          "productInfo": {
+            "description": "...",
+            "product_term": [
+              { "name": "Frisches Obst", "slug": "market-ninjas-frisches-obst", "term_id": 3885 }
+            ],
+            "inhaltsstoffe": "",
+            "durchschnittliche_nahrwerte": null,
+            "brennwert": null,
+            "fett": null,
+            "davon_gesattigte_fettsauren": null,
+            "kohlehydrate": null,
+            "davon_zucker": null,
+            "ballaststoffe": null,
+            "eiweis": null,
+            "salz": null
+          },
+          "image": {
+            "small": "https://velofood.at/wp-content/uploads/...-300x300.jpg",
+            "large": "https://velofood.at/wp-content/uploads/...-300x300.jpg"
+          },
+          "poz": 4,
+          "popularity": 14,
+          "datum": 1762516887,
+          "menu_order": 10,
+          "price_sort": 3.69,
+          "sold": null,
+          "allergens": [],
+          "in_cart": 0,
+          "market_product": true,
+          "price_note": "",
+          "stock": 1,
+          "total_stock": 1,
+          "allergens_notes": []
+        }
+      ]
+    }
+  ],
+  "current_page": 1
+}
 ```
 
-### Key CSS Selectors
+### Product Item Fields
 
-| Data | CSS Selector |
-|---|---|
-| Product container | `li.product` |
-| Product ID | `a.add_to_cart_button[data-product_id]` |
-| Product name | `.woocommerce-loop-product__title` |
-| Price | `.price .woocommerce-Price-amount bdi` |
-| Product URL | `a.woocommerce-LoopProduct-link[href]` |
-| Next-page link | `.woocommerce-pagination a.next` |
+| Field | Type | Description |
+|---|---|---|
+| `id` | integer | Unique WooCommerce product ID |
+| `name` | string | Product name (e.g. "Bio Wiesenmilch Vollmilch 3,5%") |
+| `brand` | string\|null | Brand name (often null) |
+| `price` | string | Price in European format with comma decimal (e.g. "3,69") |
+| `old_price` | string | Previous price if on sale (empty string if not) |
+| `discount_percente` | string | Discount percentage (empty string if not) |
+| `price_sort` | float | Price as a float for sorting (e.g. 3.69) |
+| `measure` | string | Quantity + unit combined (e.g. "1stk", "300g", "1l", "250ml", "6stk") |
+| `price_per_measure` | string | Unit price (e.g. "3.29/1stk", "0.7/1stk") |
+| `biolabel` | array | `["bio"]` if organic, empty `[]` otherwise |
+| `toplabel` | array | Special labels (e.g. sale badges) |
+| `austrian_product` | boolean | Whether the product is Austrian |
+| `in_stock` | boolean | Stock availability |
+| `stock` | integer | Current stock level |
+| `market_product` | boolean | Always `true` for market products |
+| `productInfo.description` | string | HTML product description |
+| `productInfo.product_term` | array | Category terms with name/slug/term_id |
+| `image.small` | string | Small product image URL |
+| `image.large` | string | Large product image URL |
+| `allergens` | array | Allergen information |
 
 ### Price Format
 
-Austrian WooCommerce stores use the European number format:
+- `price` field: European format string with comma decimal (e.g. `"3,69"`)
+- `price_sort` field: Float for sorting (e.g. `3.69`) — **use this for canonical price**
+- `old_price`: Non-empty string when product is on sale
 
-- Decimal separator: `,`  (comma)
-- Example raw text: `€1,29`
-- Parsed as: `1.29`
+### Measure Field
 
-### Unit and Quantity
+The `measure` field contains quantity and unit concatenated without space:
 
-Product listing pages **do not** expose structured unit/quantity fields.  The
-unit and quantity must be parsed from the product name when possible:
+| measure | Parsed quantity | Parsed unit |
+|---|---|---|
+| `"1stk"` | 1 | stk |
+| `"300g"` | 300 | g |
+| `"1l"` | 1 | l |
+| `"250ml"` | 250 | ml |
+| `"6stk"` | 6 | stk |
+| `"1kg"` | 1 | kg |
 
-| Pattern in name | Parsed result |
-|---|---|
-| `500g`, `500 g` | quantity=500, unit=g |
-| `1kg`, `1 kg` | quantity=1000, unit=g (after conversion) |
-| `1l`, `1 L` | quantity=1000, unit=ml (after conversion) |
-| `500ml`, `500 ml` | quantity=500, unit=ml |
-| *(no match)* | quantity=1, unit=stk |
+Regex: `/^(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|dl|l|stk)$/i`
 
 ### Bio Detection
 
-A product is marked as organic (`bio: true`) if the product name contains the
-substring `bio` (case-insensitive).
+A product is organic if `biolabel` array is non-empty (typically `["bio"]`).
 
 ---
 
-## Supermarkt Category ID
+## Category Structure
 
-The numeric WooCommerce category ID for _Supermarkt_ can be resolved via:
+Categories are embedded in the `/market` page HTML as inline JSON.  There are **15 top-level
+categories** with **~80 subcategories** total.
+
+### Top-Level Categories
+
+| CategoryId | CategoryName |
+|---|---|
+| 3882 | Aktionen |
+| 3884 | Obst & Gemüse |
+| 3890 | Bäckerei & Konditorei |
+| 3895 | Kühlschrank |
+| 3902 | Vorratsschrank |
+| 3914 | Alkoholfreie Getränke |
+| 3922 | Alkohol |
+| 3932 | Tiefkühlung |
+| 3941 | Süße Snacks |
+| 3950 | Salzige Snacks |
+| 3956 | Drogerie & Hygiene |
+| 3962 | Baby |
+| 3966 | Küche & Haushalt |
+| 3970 | Hund & Katze |
+| 3974 | Papes, Snus & mehr |
+
+### Fetching Strategy
+
+Use `level=0` with each top-level category ID to get all products across all subcategories
+in a single request per category.  This returns the full product list grouped by subcategory.
+
+---
+
+## Old WooCommerce HTML Scraping *(Deprecated)*
+
+The old scraper used paginated HTML pages at:
 
 ```
-GET https://www.velofood.at/wp-json/wc/v3/products/categories?slug=supermarkt
+https://velofood.at/produktkategorie/supermarkt/page/N/
 ```
 
-This returns an array; the first element's `id` field is the category ID (requires auth).
+This approach is **deprecated** because:
+1. The shop has moved to `/market` with AJAX-loaded products
+2. The old category pages may no longer contain all products
+3. The new JSON API provides structured data (price, measure, bio) without HTML parsing
 
 ---
 
 ## Implementation Notes
 
-- The implementation scrapes the Supermarkt category page at the URL above.
-- Pagination stops when a page returns HTTP 404 or contains no `li.product` elements.
-- Product IDs are taken from `data-product_id` on the add-to-cart button; if absent,
-  the product slug (last path segment of the product URL) is used as a fallback.
-- Prices are parsed by stripping the `€` symbol and replacing `,` with `.`.
-- Unit/quantity are extracted with a regex applied to the product name.
+- Use the `custom_api/vfapi.php` endpoint (or `wp-json/velofood/v1`) with
+  `action=market_get_products`.
+- Iterate over all 15 top-level category IDs with `level=0` to fetch every product.
+- Use `price_sort` (float) for the canonical price instead of parsing the `price` string.
+- Parse `measure` for quantity and unit using a regex.
+- Check `biolabel` array for organic detection (non-empty = bio).
+- Deduplicate by product `id` since products may appear in multiple categories.
+- All API requests are unauthenticated GET requests.
