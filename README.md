@@ -13,8 +13,8 @@ The dashboard is a static site served via **GitHub Pages**. It loads price data 
 ```
 main branch           data branch           GitHub Pages
 ───────────           ───────────           ────────────
-source code  ──(CI)──▶ data/latest-         docs/ static
-docs/ static           canonical.json       site served
+source code  ──(CI)──▶ data/latest-         dashboard/ static
+dashboard/ static      canonical.json       site served
                        (updated daily)      at /
 ```
 
@@ -72,7 +72,7 @@ cd data-collector && npm install && npm run collect
 cd data-collector && npm install && npm start
 ```
 
-The static dashboard in `docs/` can be opened directly in a browser (or served with any static file server). It fetches data from the `data` branch on GitHub, so a live internet connection is required.
+The static dashboard in `dashboard/` can be opened directly in a browser (or served with any static file server). It fetches data from the `data` branch on GitHub, so a live internet connection is required.
 
 ## Store Implementation Status
 
@@ -81,7 +81,7 @@ The static dashboard in `docs/` can be opened directly in a browser (or served w
 | Billa | ✅ Implemented (via `shop.billa.at` API) |
 | Spar | ✅ Implemented (via Spar Fact-Finder search API) |
 | Ninja | 🚧 Placeholder – API to be confirmed |
-| Velofood | ✅ Implemented (HTML scraping of WooCommerce Supermarkt category – see [docs/velofood-api.md](docs/velofood-api.md)) |
+| Velofood | ✅ Implemented (HTML scraping of WooCommerce Supermarkt category – see [dashboard/velofood-api.md](dashboard/velofood-api.md)) |
 
 ## Inspiration
 
