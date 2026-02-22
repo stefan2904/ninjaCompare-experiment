@@ -50,6 +50,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Switch to the data branch (or create an orphan branch if it doesn't exist yet).
+          # data/latest-canonical.json is gitignored so it won't be removed when switching branches.
+          git fetch origin data 2>/dev/null || true
+          if git show-ref --verify --quiet refs/remotes/origin/data; then
+            git checkout -B data origin/data
+          else
+            git checkout --orphan data
+            git rm -rf . 2>/dev/null || true
+          fi
+
           # Stage the collected data file (force-add because data/ is in .gitignore)
           git add -f data/latest-canonical.json
           if git diff --cached --quiet; then
@@ -58,5 +68,4 @@ jobs:
           fi
           git commit -m "chore: update price data $(date -u +'%Y-%m-%d')"
 
-          # Push only this commit to the data branch
-          git push origin HEAD:data
+          git push origin data
