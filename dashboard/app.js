@@ -392,6 +392,49 @@ function showToast(message) {
 // ─── Comparison View ────────────────────────────────────────────────────────
 let mainChart = null;
 let productCharts = [];
+let normalizeByWeight = false;
+
+/**
+ * Returns the normalized price for a product.
+ * - unit "g": price per 1000g (per kg)
+ * - unit "ml": price per 1000ml (per litre)
+ * - unit "stk" or missing quantity: price as-is (cannot normalize)
+ */
+function getNormalizedPrice(item) {
+    if (!normalizeByWeight) return item.price;
+    if (!item.unit || !item.quantity || item.quantity <= 0) return item.price;
+    if (item.unit === 'g')  return (item.price / item.quantity) * 1000;
+    if (item.unit === 'ml') return (item.price / item.quantity) * 1000;
+    return item.price; // stk – can't normalize
+}
+
+/**
+ * Returns the normalized price for a historical price entry.
+ */
+function getNormalizedHistoryPrice(historyPrice, item) {
+    if (!normalizeByWeight) return historyPrice;
+    if (!item.unit || !item.quantity || item.quantity <= 0) return historyPrice;
+    if (item.unit === 'g')  return (historyPrice / item.quantity) * 1000;
+    if (item.unit === 'ml') return (historyPrice / item.quantity) * 1000;
+    return historyPrice;
+}
+
+/**
+ * Returns the unit label for display when normalizing.
+ */
+function getNormalizedUnitLabel(item) {
+    if (!normalizeByWeight) return '';
+    if (item.unit === 'g')  return '/kg';
+    if (item.unit === 'ml') return '/l';
+    return '';
+}
+
+/**
+ * Returns whether an item can be weight-normalized.
+ */
+function canNormalize(item) {
+    return item.unit && item.quantity > 0 && (item.unit === 'g' || item.unit === 'ml');
+}
 
 const STORE_COLORS = {
     billa:    { line: '#e63946', bg: 'rgba(230, 57, 70, 0.15)' },
@@ -438,10 +481,10 @@ function renderComparison() {
         storeGroups[item.store].push(item);
     }
 
-    // Calculate totals
+    // Calculate totals (using normalized or absolute prices)
     const storeTotals = {};
     for (const [store, items] of Object.entries(storeGroups)) {
-        storeTotals[store] = items.reduce((sum, item) => sum + item.price, 0);
+        storeTotals[store] = items.reduce((sum, item) => sum + getNormalizedPrice(item), 0);
     }
 
     // Sort stores by total price (cheapest first)
@@ -449,16 +492,25 @@ function renderComparison() {
     const cheapestStore = sortedStores.length > 1 ? sortedStores[0][0] : null;
     const mostExpensiveTotal = sortedStores[sortedStores.length - 1][1];
 
+    // Check if any basket items can be normalized (for informational hint)
+    const hasNormalizableItems = Array.from(basket.values()).some(canNormalize);
+    const hasNonNormalizableItems = normalizeByWeight && Array.from(basket.values()).some(item => !canNormalize(item));
+
     // ── Summary bar ──
     let html = '<div class="comparison-summary">';
     html += `<div class="comparison-summary-count">${basket.size} product${basket.size !== 1 ? 's' : ''} across ${sortedStores.length} store${sortedStores.length !== 1 ? 's' : ''}</div>`;
     if (cheapestStore) {
         const savings = (mostExpensiveTotal - storeTotals[cheapestStore]);
         if (savings > 0.004) {
-            html += `<div class="comparison-summary-savings">💰 Best deal at <strong>${ucfirst(cheapestStore)}</strong> — save <strong>€${savings.toFixed(2)}</strong></div>`;
+            html += `<div class="comparison-summary-savings">💰 Best deal at <strong>${ucfirst(cheapestStore)}</strong> — save <strong>€${savings.toFixed(2)}</strong>${normalizeByWeight ? ' (normalized)' : ''}</div>`;
         }
     }
     html += '</div>';
+
+    // ── Normalization hint ──
+    if (normalizeByWeight && hasNonNormalizableItems) {
+        html += '<div class="normalize-hint">ℹ️ Items sold by piece (stk) cannot be normalized and show their absolute price.</div>';
+    }
 
     // ── Store baskets ──
     html += '<div class="comparison-stores">';
@@ -472,19 +524,22 @@ function renderComparison() {
                     <span class="store-badge ${escapeHtml(store)}">${escapeHtml(ucfirst(store))}</span>
                     ${isCheapest ? '<span class="cheapest-badge">★ Cheapest</span>' : ''}
                 </div>
-                <span class="comparison-store-total">€${total.toFixed(2)}</span>
+                <span class="comparison-store-total">€${total.toFixed(2)}${normalizeByWeight ? ' <span class="normalized-label">normalized</span>' : ''}</span>
             </div>
             <div class="comparison-products">
-                ${items.map(item => `
+                ${items.map(item => {
+                    const normPrice = getNormalizedPrice(item);
+                    const unitLabel = getNormalizedUnitLabel(item);
+                    return `
                     <div class="comparison-product">
                         <div class="comparison-product-info">
                             <span class="comparison-product-name">${escapeHtml(item.name)}</span>
-                            <span class="comparison-product-detail">${formatUnit(item)}${item.bio ? ' · Bio' : ''}</span>
+                            <span class="comparison-product-detail">${formatUnit(item)}${item.bio ? ' · Bio' : ''}${normalizeByWeight && !canNormalize(item) ? ' · <em>not normalizable</em>' : ''}</span>
                         </div>
-                        <span class="comparison-product-price">€${item.price.toFixed(2)}</span>
+                        <span class="comparison-product-price">€${normPrice.toFixed(2)}${unitLabel ? `<span class="price-unit-label">${unitLabel}</span>` : ''}</span>
                         <button class="comparison-remove-btn" data-id="${escapeHtml(item.id)}" title="Remove from basket">✕</button>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
             <div class="comparison-total-row">
                 <span>Total (${items.length} item${items.length !== 1 ? 's' : ''})</span>
@@ -492,7 +547,7 @@ function renderComparison() {
             </div>
             ${isCheapest && sortedStores.length > 1 && (mostExpensiveTotal - total) > 0.004 ? `
                 <div class="comparison-savings-note">
-                    Save €${(mostExpensiveTotal - total).toFixed(2)} vs ${ucfirst(sortedStores[sortedStores.length - 1][0])}
+                    Save €${(mostExpensiveTotal - total).toFixed(2)} vs ${ucfirst(sortedStores[sortedStores.length - 1][0])}${normalizeByWeight ? ' (normalized)' : ''}
                 </div>
             ` : ''}
         </div>`;
@@ -502,7 +557,7 @@ function renderComparison() {
     // ── Price history section ──
     html += `
         <div class="comparison-history">
-            <h3>📈 Price History</h3>
+            <h3>📈 Price History${normalizeByWeight ? ' (normalized per kg/l)' : ''}</h3>
             <div class="main-chart-container">
                 <canvas id="price-history-chart"></canvas>
             </div>
@@ -556,17 +611,18 @@ function renderMainChart(storeGroups) {
         const totals = sortedDates.map(date => {
             let total = 0;
             for (const item of items) {
+                let rawPrice;
                 if (item.priceHistory && item.priceHistory.length > 0) {
                     const sorted = [...item.priceHistory].sort((a, b) => a.date.localeCompare(b.date));
-                    let price = sorted[0].price;
+                    rawPrice = sorted[0].price;
                     for (const entry of sorted) {
-                        if (entry.date <= date) price = entry.price;
+                        if (entry.date <= date) rawPrice = entry.price;
                         else break;
                     }
-                    total += price;
                 } else {
-                    total += item.price;
+                    rawPrice = item.price;
                 }
+                total += getNormalizedHistoryPrice(rawPrice, item);
             }
             return Math.round(total * 100) / 100;
         });
@@ -585,6 +641,11 @@ function renderMainChart(storeGroups) {
         });
     }
 
+    const yAxisLabel = normalizeByWeight ? 'Normalized Price (€/kg or €/l)' : 'Total Price (€)';
+    const chartTitle = normalizeByWeight
+        ? 'Normalized Basket Price per Store Over Time'
+        : 'Total Basket Price per Store Over Time';
+
     mainChart = new Chart(canvas, {
         type: 'line',
         data: { labels: sortedDates, datasets },
@@ -592,7 +653,7 @@ function renderMainChart(storeGroups) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                title: { display: true, text: 'Total Basket Price per Store Over Time', font: { size: 14, weight: '600' } },
+                title: { display: true, text: chartTitle, font: { size: 14, weight: '600' } },
                 tooltip: {
                     mode: 'index',
                     intersect: false,
@@ -604,7 +665,7 @@ function renderMainChart(storeGroups) {
                 y: {
                     beginAtZero: false,
                     ticks: { callback: v => `€${Number(v).toFixed(2)}` },
-                    title: { display: true, text: 'Total Price (€)' },
+                    title: { display: true, text: yAxisLabel },
                 },
                 x: { title: { display: true, text: 'Date' } },
             },
@@ -634,10 +695,11 @@ function renderProductCharts(storeGroups) {
 
     let html = '<h4>Individual Product Price Trends</h4><div class="product-charts-grid">';
     for (const { store, item } of chartsData) {
+        const unitLabel = getNormalizedUnitLabel(item);
         html += `
             <div class="product-chart-card">
                 <div class="product-chart-title">
-                    <span>${escapeHtml(item.name)}</span>
+                    <span>${escapeHtml(item.name)}${normalizeByWeight && unitLabel ? ` <span class="price-unit-label">${unitLabel}</span>` : ''}</span>
                     <span class="store-badge ${escapeHtml(store)}">${escapeHtml(store)}</span>
                 </div>
                 <div class="product-chart-canvas-wrap">
@@ -661,7 +723,7 @@ function renderProductCharts(storeGroups) {
             data: {
                 labels: sorted.map(e => e.date),
                 datasets: [{
-                    data: sorted.map(e => e.price),
+                    data: sorted.map(e => getNormalizedHistoryPrice(e.price, item)),
                     borderColor: colors.line,
                     backgroundColor: colors.bg,
                     fill: true,
@@ -726,6 +788,12 @@ document.getElementById("clear-basket-btn").addEventListener("click", () => {
         clearBasket();
         renderComparison();
     }
+});
+
+// Normalize-by-weight toggle
+document.getElementById("normalize-toggle").addEventListener("change", (e) => {
+    normalizeByWeight = e.target.checked;
+    renderComparison();
 });
 
 // Close modal on backdrop click
