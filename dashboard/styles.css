@@ -366,7 +366,7 @@ tr.row-in-basket:hover {
     background: var(--color-bg);
     border-radius: 12px;
     width: 100%;
-    max-width: 900px;
+    max-width: 1280px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     animation: modal-slide-in 0.25s ease;
 }
