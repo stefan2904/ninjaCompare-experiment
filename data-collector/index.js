@@ -21,6 +21,7 @@ const billa = require("./stores/billa");
 const spar = require("./stores/spar");
 const ninja = require("./stores/ninja");
 const velofood = require("./stores/velofood");
+const alfiesGraz = require("./stores/alfies-graz");
 const { currentDate } = require("./stores/utils");
 
 const PORT = process.env.PORT || 3001;
@@ -72,6 +73,7 @@ async function fetchAll() {
         fetchStore(spar),
         fetchStore(ninja),
         fetchStore(velofood),
+        fetchStore(alfiesGraz),
     ]);
 
     // Flatten and merge results

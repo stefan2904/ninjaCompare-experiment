@@ -18,6 +18,7 @@ const billa = require("./stores/billa");
 const spar = require("./stores/spar");
 const ninja = require("./stores/ninja");
 const velofood = require("./stores/velofood");
+const alfiesGraz = require("./stores/alfies-graz");
 const { currentDate } = require("./stores/utils");
 
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "data", "latest-canonical.json");
@@ -59,6 +60,7 @@ async function main() {
         fetchStore(spar),
         fetchStore(ninja),
         fetchStore(velofood),
+        fetchStore(alfiesGraz),
     ]);
 
     const newItems = results.flat();
