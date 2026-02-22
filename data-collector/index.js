@@ -1,7 +1,7 @@
 /**
  * Data Collector Service – ninjaCompare
  *
- * Fetches product prices from Austrian supermarkets (Billa, Spar) and
+ * Fetches product prices from Austrian supermarkets (Billa, Spar, Hofer) and
  * online shops (Ninja, Velofood), merges them into a canonical JSON format,
  * and exposes the result via a simple HTTP API.
  *
@@ -22,6 +22,7 @@ const spar = require("./stores/spar");
 const ninja = require("./stores/ninja");
 const velofood = require("./stores/velofood");
 const alfiesGraz = require("./stores/alfies-graz");
+const hofer = require("./stores/hofer");
 const { currentDate } = require("./stores/utils");
 
 const PORT = process.env.PORT || 3001;
@@ -57,6 +58,9 @@ async function fetchStore(storeModule) {
         return items;
     } catch (err) {
         console.error(`Error fetching ${STORE}: ${err.message}`);
+        if (storeModule.FAIL_ON_ERROR) {
+            throw err;
+        }
         return [];
     }
 }
@@ -74,6 +78,7 @@ async function fetchAll() {
         fetchStore(ninja),
         fetchStore(velofood),
         fetchStore(alfiesGraz),
+        fetchStore(hofer),
     ]);
 
     // Flatten and merge results

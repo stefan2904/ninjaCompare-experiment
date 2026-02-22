@@ -11,6 +11,7 @@
     --color-muted: #6c757d;
     --color-billa: #e63946;
     --color-spar: #2a9d8f;
+    --color-hofer: #f97316;
     --color-ninja: #f4a261;
     --color-velofood: #457b9d;
     --color-alfies-graz: #7c3aed;
@@ -115,6 +116,7 @@ main {
 }
 .store-filters label.billa  { background: #fce4e6; color: var(--color-billa); border-color: var(--color-billa); }
 .store-filters label.spar   { background: #d8f0ed; color: var(--color-spar);  border-color: var(--color-spar); }
+.store-filters label.hofer  { background: #ffedd5; color: var(--color-hofer); border-color: var(--color-hofer); }
 .store-filters label.ninja  { background: #fdf0e2; color: var(--color-ninja); border-color: var(--color-ninja); }
 .store-filters label.velofood { background: #d6e8f0; color: var(--color-velofood); border-color: var(--color-velofood); }
 .store-filters label.alfies-graz { background: #ede9fe; color: var(--color-alfies-graz); border-color: var(--color-alfies-graz); }
@@ -173,6 +175,7 @@ tbody td {
 }
 .store-badge.billa   { background: #fce4e6; color: var(--color-billa); }
 .store-badge.spar    { background: #d8f0ed; color: var(--color-spar); }
+.store-badge.hofer   { background: #ffedd5; color: var(--color-hofer); }
 .store-badge.ninja   { background: #fdf0e2; color: var(--color-ninja); }
 .store-badge.velofood { background: #d6e8f0; color: var(--color-velofood); }
 .store-badge.alfies-graz { background: #ede9fe; color: var(--color-alfies-graz); }

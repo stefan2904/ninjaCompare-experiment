@@ -19,6 +19,7 @@ const spar = require("./stores/spar");
 const ninja = require("./stores/ninja");
 const velofood = require("./stores/velofood");
 const alfiesGraz = require("./stores/alfies-graz");
+const hofer = require("./stores/hofer");
 const { currentDate } = require("./stores/utils");
 
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "data", "latest-canonical.json");
@@ -47,6 +48,9 @@ async function fetchStore(storeModule) {
         return items;
     } catch (err) {
         console.error(`Error fetching ${STORE}: ${err.message}`);
+        if (storeModule.FAIL_ON_ERROR) {
+            throw err;
+        }
         return [];
     }
 }
@@ -61,6 +65,7 @@ async function main() {
         fetchStore(ninja),
         fetchStore(velofood),
         fetchStore(alfiesGraz),
+        fetchStore(hofer),
     ]);
 
     const newItems = results.flat();

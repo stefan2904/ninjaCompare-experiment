@@ -8,10 +8,11 @@
 const DATA_URL =
     "https://raw.githubusercontent.com/stefan2904/ninjaCompare-experiment/data/data/latest-canonical.json";
 
-const STORES = ["billa", "spar", "ninja", "velofood", "alfies-graz"];
+const STORES = ["billa", "spar", "hofer", "ninja", "velofood", "alfies-graz"];
 const STORE_LABELS = {
     billa: "Billa",
     spar: "Spar",
+    hofer: "Hofer",
     ninja: "Ninja",
     velofood: "Velofood",
     "alfies-graz": "Alfies Graz",
@@ -450,6 +451,7 @@ function canNormalize(item) {
 const STORE_COLORS = {
     billa:        { line: '#e63946', bg: 'rgba(230, 57, 70, 0.15)' },
     spar:         { line: '#2a9d8f', bg: 'rgba(42, 157, 143, 0.15)' },
+    hofer:        { line: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
     ninja:        { line: '#f4a261', bg: 'rgba(244, 162, 97, 0.15)' },
     velofood:     { line: '#457b9d', bg: 'rgba(69, 123, 157, 0.15)' },
     "alfies-graz": { line: '#7c3aed', bg: 'rgba(124, 58, 237, 0.15)' },
