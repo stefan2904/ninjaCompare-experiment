@@ -9,10 +9,14 @@ const DATA_URL =
 
 const STORES = ["billa", "spar", "ninja", "velofood"];
 const ITEMS_PER_PAGE = 100;
+const CACHE_KEY = "ninjaCompare_data";
+const CACHE_TS_KEY = "ninjaCompare_ts";
+const CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
 
 let allItems = [];
 let activeStores = new Set(STORES);
 let currentPage = 1;
+let cacheTimestamp = null; // when data was last fetched
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
 const searchInput = document.getElementById("search");
@@ -21,6 +25,7 @@ const storeFiltersEl = document.getElementById("store-filters");
 const productBody = document.getElementById("product-body");
 const statsEl = document.getElementById("stats");
 const paginationEl = document.getElementById("pagination");
+const reloadBtn = document.getElementById("reload-btn");
 
 // ─── Build store filter checkboxes ──────────────────────────────────────────
 function buildStoreFilters() {
@@ -125,9 +130,11 @@ function renderTable() {
     // Stats
     const storeCounts = {};
     for (const item of allFiltered) storeCounts[item.store] = (storeCounts[item.store] || 0) + 1;
+    const cacheInfo = cacheTimestamp ? ` · loaded ${formatCacheAge()}` : "";
     statsEl.textContent =
         `Showing ${total.toLocaleString()} products – ` +
-        STORES.filter((s) => storeCounts[s]).map((s) => `${s}: ${storeCounts[s]}`).join(", ");
+        STORES.filter((s) => storeCounts[s]).map((s) => `${s}: ${storeCounts[s]}`).join(", ") +
+        cacheInfo;
 
     productBody.innerHTML = items
         .map((item) => {
@@ -175,25 +182,88 @@ function updateStoreFilterVisibility() {
     });
 }
 
-// ─── Data loading ───────────────────────────────────────────────────────────
-async function loadData() {
+// ─── Data loading & caching ──────────────────────────────────────────────────
+function getCachedData() {
+    try {
+        const ts = localStorage.getItem(CACHE_TS_KEY);
+        if (!ts) return null;
+        const age = Date.now() - Number(ts);
+        if (age > CACHE_MAX_AGE_MS) return null;
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        return { data: JSON.parse(raw), timestamp: Number(ts) };
+    } catch {
+        return null;
+    }
+}
+
+function setCachedData(data) {
+    try {
+        const now = Date.now();
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(CACHE_TS_KEY, String(now));
+        cacheTimestamp = now;
+    } catch {
+        // localStorage full or unavailable – silently ignore
+    }
+}
+
+function formatCacheAge() {
+    if (!cacheTimestamp) return "";
+    const secs = Math.round((Date.now() - cacheTimestamp) / 1000);
+    if (secs < 5) return "just now";
+    if (secs < 60) return `${secs}s ago`;
+    const mins = Math.round(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.round(mins / 60);
+    return `${hrs}h ago`;
+}
+
+async function loadData(forceReload = false) {
     productBody.innerHTML = `<tr><td colspan="5" class="loading">Loading data…</td></tr>`;
     statsEl.textContent = "";
+    reloadBtn.disabled = true;
+
+    // Try cache first (unless force-reload)
+    if (!forceReload) {
+        const cached = getCachedData();
+        if (cached) {
+            allItems = cached.data;
+            cacheTimestamp = cached.timestamp;
+            updateStoreFilterVisibility();
+            renderTable();
+            reloadBtn.disabled = false;
+            return;
+        }
+    }
 
     try {
         const response = await fetch(DATA_URL);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         allItems = await response.json();
+        setCachedData(allItems);
         updateStoreFilterVisibility();
         renderTable();
     } catch (err) {
         productBody.innerHTML = `<tr><td colspan="5" class="error">Failed to load data: ${escapeHtml(err.message)}</td></tr>`;
         statsEl.textContent = "";
+    } finally {
+        reloadBtn.disabled = false;
     }
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────
 buildStoreFilters();
-searchInput.addEventListener("input", () => { currentPage = 1; renderTable(); });
+
+// Debounced search – avoids re-rendering on every keystroke
+let searchTimer = null;
+searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { currentPage = 1; renderTable(); }, 300);
+});
+
 sortSelect.addEventListener("change", () => { currentPage = 1; renderTable(); });
+
+reloadBtn.addEventListener("click", () => loadData(true));
+
 loadData();
